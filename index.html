@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Calorie Tracker</title>
+    <style>
+        /* Base styles */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #e8eef3;
+            margin: 0;
+            padding: 15px;
+            box-sizing: border-box;
+            color: #333;
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            justify-content: center;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        /* Main container (physical card effect) */
+        .app-container {
+            width: 100%;
+            max-width: 420px;
+            background: #ffffff;
+            border-radius: 8px; 
+            box-shadow: 
+                0 15px 35px rgba(0, 30, 80, 0.08), 
+                0 3px 10px rgba(0, 0, 0, 0.04),
+                inset 0 1px 0 rgba(255, 255, 255, 1);
+            border: 1px solid #cdd6e0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header with skeuomorphic gradient */
+        .app-header {
+            background: linear-gradient(to bottom, #ffffff 0%, #ebf1f6 100%);
+            border-bottom: 1px solid #b9c6d2;
+            padding: 20px 15px;
+            box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.8);
+        }
+
+        /* Date navigation */
+        .date-navigator {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .nav-btn {
+            background: linear-gradient(to bottom, #ffffff 0%, #e0e7ed 100%);
+            border: 1px solid #aebecd;
+            border-radius: 4px;
+            width: 36px;
+            height: 36px;
+            font-size: 16px;
+            color: #4a5d70;
+            cursor: pointer;
+            box-shadow: 
+                inset 0 1px 0 #fff, 
+                0 1px 2px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.1s;
+        }
+
+        .nav-btn:active {
+            background: #d4dde5;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+            border-color: #9ba8b3;
+        }
+
+        .date-display-wrapper {
+            position: relative;
+            flex: 1;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .date-display-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a3c5a;
+            text-shadow: 0 1px 0 #ffffff;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .date-display-text::after {
+            content: "▼";
+            font-size: 10px;
+            color: #8da2b5;
+        }
+
+        /* Hidden input for native date picker */
+        #datePicker {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* Circular progress (dial) */
+        .progress-wrapper {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            margin: 0 auto;
+            background: #f4f7f9;
+            border-radius: 50%;
+            box-shadow: 
+                inset 0 3px 8px rgba(0, 0, 0, 0.1),
+                0 1px 0 rgba(255, 255, 255, 1);
+            border: 1px solid #d1d9e6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring__track {
+            fill: transparent;
+            stroke: #e4ebf1;
+            stroke-width: 12;
+        }
+
+        .progress-ring__circle {
+            fill: transparent;
+            stroke: url(#blueGradient);
+            stroke-width: 12;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: drop-shadow(0 2px 3px rgba(0, 122, 255, 0.4));
+        }
+
+        .progress-ring__circle.over-limit {
+            stroke: url(#redGradient);
+            filter: drop-shadow(0 2px 3px rgba(255, 59, 48, 0.4));
+        }
+
+        .progress-text {
+            position: absolute;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .progress-amount {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1a3c5a;
+            line-height: 1;
+            text-shadow: 0 1px 0 #fff;
+        }
+
+        .progress-amount.over-limit {
+            color: #ff3b30;
+        }
+
+        .progress-label {
+            font-size: 12px;
+            color: #607d8b;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+        
+        .progress-norm {
+            font-size: 11px;
+            color: #8da2b5;
+            margin-top: 2px;
+        }
+
+        /* Add form */
+        .add-form {
+            padding: 20px 15px;
+            background: #fbfcfd;
+            border-bottom: 1px solid #e1e8ed;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            color: #50657b;
+            margin-bottom: 4px;
+            font-weight: 500;
+            text-shadow: 0 1px 0 #fff;
+        }
+
+        .row-inputs {
+            display: flex;
+            gap: 10px;
+        }
+
+        .row-inputs .input-group {
+            flex: 1;
+        }
+
+        /* Inputs with inner shadows */
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 10px 12px;
+            font-size: 16px;
+            border: 1px solid #b3c0c8;
+            border-top-color: #9ba8b3;
+            border-radius: 5px;
+            background: #ffffff;
+            color: #333;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: border-color 0.2s, box-shadow 0.2s;
+            appearance: none;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #007aff;
+            box-shadow: 
+                inset 0 2px 4px rgba(0, 0, 0, 0.04), 
+                0 0 0 3px rgba(0, 122, 255, 0.15);
+        }
+
+        /* Button */
+        button.btn-add {
+            width: 100%;
+            padding: 12px;
+            margin-top: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #ffffff;
+            background: linear-gradient(to bottom, #4cb8ff 0%, #007aff 100%);
+            border: 1px solid #005aab;
+            border-radius: 5px;
+            cursor: pointer;
+            text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.2);
+            box-shadow: 
+                inset 0 1px 0 rgba(255, 255, 255, 0.3),
+                0 2px 4px rgba(0, 122, 255, 0.2);
+            transition: all 0.1s;
+        }
+
+        button.btn-add:active {
+            background: #0069d9;
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+            border-color: #004080;
+            transform: translateY(1px);
+        }
+
+        /* Food list container */
+        .food-list-container {
+            background: #ffffff;
+            flex: 1;
+            min-height: 150px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .food-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .food-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 15px;
+            border-bottom: 1px solid #edf2f6;
+            background: linear-gradient(to bottom, #ffffff 0%, #fcfcfd 100%);
+        }
+
+        .food-item:last-child {
+            border-bottom: none;
+        }
+
+        .food-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .food-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .food-details {
+            font-size: 12px;
+            color: #8da2b5;
+            margin-top: 3px;
+        }
+
+        .food-total-calc {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .cal-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #007aff;
+        }
+
+        .delete-btn {
+            background: transparent;
+            border: none;
+            color: #c4d0dd;
+            font-size: 22px;
+            cursor: pointer;
+            padding: 0 5px;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .delete-btn:hover {
+            color: #ff3b30;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 30px 20px;
+            color: #aebecd;
+            font-size: 14px;
+            text-shadow: 0 1px 0 #fff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="app-header">
+        
+        <!-- Date navigation -->
+        <div class="date-navigator">
+            <button id="prevDay" class="nav-btn">◀</button>
+            <div class="date-display-wrapper">
+                <span id="displayDateText" class="date-display-text">Loading...</span>
+                <input type="date" id="datePicker">
+            </div>
+            <button id="nextDay" class="nav-btn">▶</button>
+        </div>
+
+        <!-- Circular progress -->
+        <div class="progress-wrapper">
+            <svg class="progress-ring" width="140" height="140">
+                <defs>
+                    <linearGradient id="blueGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#4cb8ff" />
+                        <stop offset="100%" stop-color="#007aff" />
+                    </linearGradient>
+                    <linearGradient id="redGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#ff6b6b" />
+                        <stop offset="100%" stop-color="#ff3b30" />
+                    </linearGradient>
+                </defs>
+                <!-- Background -->
+                <circle class="progress-ring__track" r="60" cx="70" cy="70"></circle>
+                <!-- Progress line -->
+                <circle class="progress-ring__circle" r="60" cx="70" cy="70"></circle>
+            </svg>
+            <div class="progress-text">
+                <span class="progress-amount" id="circleCalories">0</span>
+                <span class="progress-label">kcal</span>
+                <span class="progress-norm">of <span id="dailyNorm">2000</span></span>
+            </div>
+        </div>
+
+    </div>
+
+    <form class="add-form" id="calorieForm">
+        <div class="input-group">
+            <label for="foodName">Food Name</label>
+            <input type="text" id="foodName" placeholder="e.g., Grilled Chicken" required autocomplete="off">
+        </div>
+        
+        <div class="row-inputs">
+            <div class="input-group">
+                <label for="calPer100">Kcal per 100g</label>
+                <input type="number" id="calPer100" placeholder="165" step="0.1" required>
+            </div>
+            <div class="input-group">
+                <label for="weight">Weight (g)</label>
+                <input type="number" id="weight" placeholder="150" step="1" required>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-add">Add to this day</button>
+    </form>
+
+    <div class="food-list-container">
+        <ul class="food-list" id="foodList">
+            <!-- List elements -->
+        </ul>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Constants and elements ---
+        const DAILY_NORM = 2000; // Daily calorie target
+        
+        const form = document.getElementById('calorieForm');
+        const foodList = document.getElementById('foodList');
+        const circleCaloriesDisplay = document.getElementById('circleCalories');
+        
+        // Calendar
+        const displayDateText = document.getElementById('displayDateText');
+        const datePicker = document.getElementById('datePicker');
+        const btnPrev = document.getElementById('prevDay');
+        const btnNext = document.getElementById('nextDay');
+        
+        // SVG Ring
+        const progressCircle = document.querySelector('.progress-ring__circle');
+        const progressAmountText = document.querySelector('.progress-amount');
+        const radius = progressCircle.r.baseVal.value;
+        const circumference = radius * 2 * Math.PI;
+
+        progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+        progressCircle.style.strokeDashoffset = circumference; 
+
+        // --- State ---
+        let currentDate = new Date();
+        let foodEntries = JSON.parse(localStorage.getItem('calorieJournal')) || [];
+
+        // --- Date functions ---
+        function formatDateForStorage(dateObj) {
+            return dateObj.getFullYear() + '-' + 
+                   String(dateObj.getMonth() + 1).padStart(2, '0') + '-' + 
+                   String(dateObj.getDate()).padStart(2, '0');
+        }
+
+        function isToday(dateObj) {
+            const today = new Date();
+            return dateObj.getDate() === today.getDate() &&
+                   dateObj.getMonth() === today.getMonth() &&
+                   dateObj.getFullYear() === today.getFullYear();
+        }
+
+        // --- UI Update ---
+        function updateUI() {
+            const dateString = formatDateForStorage(currentDate);
+            
+            // 1. Update text display of date
+            if (isToday(currentDate)) {
+                displayDateText.textContent = "Today, " + currentDate.toLocaleDateString('en-US', { day: 'numeric', month: 'long' });
+            } else {
+                displayDateText.textContent = currentDate.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+            }
+            datePicker.value = dateString;
+
+            // 2. Render food list for selected day
+            foodList.innerHTML = '';
+            const todaysEntries = foodEntries.filter(entry => entry.date === dateString);
+            
+            let totalCal = 0;
+
+            if (todaysEntries.length === 0) {
+                foodList.innerHTML = '<div class="empty-state">No entries for this day</div>';
+            } else {
+                todaysEntries.forEach(entry => {
+                    totalCal += entry.calculatedCalories;
+
+                    const li = document.createElement('li');
+                    li.className = 'food-item';
+                    li.innerHTML = `
+                        <div class="food-info">
+                            <span class="food-name">${escapeHTML(entry.name)}</span>
+                            <span class="food-details">${entry.weight}g (${entry.calPer100} kcal/100g)</span>
+                        </div>
+                        <div class="food-total-calc">
+                            <span class="cal-value">${Math.round(entry.calculatedCalories)}</span>
+                            <button type="button" class="delete-btn" onclick="deleteEntry(${entry.id})">&times;</button>
+                        </div>
+                    `;
+                    foodList.appendChild(li);
+                });
+            }
+
+            // 3. Update ring and counter
+            const roundedTotal = Math.round(totalCal);
+            circleCaloriesDisplay.textContent = roundedTotal;
+
+            // Ring animation
+            let percent = (totalCal / DAILY_NORM) * 100;
+            const cappedPercent = Math.min(percent, 100); 
+            const offset = circumference - (cappedPercent / 100) * circumference;
+            progressCircle.style.strokeDashoffset = offset;
+
+            // Change color when limit exceeded
+            if (percent > 100) {
+                progressCircle.classList.add('over-limit');
+                progressAmountText.classList.add('over-limit');
+            } else {
+                progressCircle.classList.remove('over-limit');
+                progressAmountText.classList.remove('over-limit');
+            }
+
+            // Save to storage
+            localStorage.setItem('calorieJournal', JSON.stringify(foodEntries));
+        }
+
+        // --- Event Handlers ---
+
+        btnPrev.addEventListener('click', () => {
+            currentDate.setDate(currentDate.getDate() - 1);
+            updateUI();
+        });
+
+        btnNext.addEventListener('click', () => {
+            currentDate.setDate(currentDate.getDate() + 1);
+            updateUI();
+        });
+
+        datePicker.addEventListener('change', (e) => {
+            if (e.target.value) {
+                currentDate = new Date(e.target.value);
+                updateUI();
+            }
+        });
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('foodName').value.trim();
+            const calPer100 = parseFloat(document.getElementById('calPer100').value);
+            const weight = parseFloat(document.getElementById('weight').value);
+
+            if (!name || isNaN(calPer100) || isNaN(weight)) return;
+
+            const calculatedCalories = (weight / 100) * calPer100;
+
+            const newEntry = {
+                id: Date.now(),
+                date: formatDateForStorage(currentDate),
+                name: name,
+                calPer100: calPer100,
+                weight: weight,
+                calculatedCalories: calculatedCalories
+            };
+
+            foodEntries.push(newEntry);
+
+            form.reset();
+            document.getElementById('foodName').focus();
+
+            updateUI();
+        });
+
+        window.deleteEntry = function(id) {
+            foodEntries = foodEntries.filter(entry => entry.id !== id);
+            updateUI();
+        };
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        updateUI();
+    });
+</script>
+</body>
+</html>
